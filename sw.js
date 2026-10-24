@@ -1,6 +1,6 @@
 // Tiene in cache i file del Quaderno di Kendra così si apre anche senza rete.
 // I dati passano sempre da Supabase e non vengono messi in cache qui.
-const CACHE = 'kendra-v2';
+const CACHE = 'kendra-v3';
 const FILES = ['./', 'index.html', 'config.js', 'supabase.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
