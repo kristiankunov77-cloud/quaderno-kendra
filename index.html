@@ -199,6 +199,58 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
 .nice p { margin: 0; font-size: 16px; line-height: 1.45 }
 .nice ul { margin: 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted) }
 .nice small { color: var(--muted); font-size: 13.5px }
+
+/* ---------- Animazioni ----------
+   Grandi: tutti gli obiettivi del giorno fatti, obiettivo dell'acqua raggiunto.
+   Medie: spuntare un obiettivo, aggiungere qualcosa, un bicchiere d'acqua.
+   Leggere: tocchi sui bottoni, cambio scheda e giorno, interruttori, righe che entrano ed escono, messaggi. */
+.main { overflow-x: clip }
+.fxburst { position: fixed; width: 0; height: 0; pointer-events: none; z-index: 60 }
+.fxburst i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: var(--br, 50%); background: var(--c); opacity: 0 }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .iconbtn, .todaybtn, .tab, .hour, .check, .del, .seg button, .linkbtn, .stat { transition: transform .14s ease, background-color .2s, border-color .2s, color .2s }
+  .btn:active, .iconbtn:active, .todaybtn:active, .hour:active, .del:active, .seg button:active, .stat:active { transform: scale(.95) }
+  .tab:active, .check:active { transform: scale(.88) }
+  .enter > div > * { animation: rise .42s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 55ms) }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px) } }
+  .slide-l > div { animation: slideL .3s cubic-bezier(.2, .8, .2, 1) both }
+  .slide-r > div { animation: slideR .3s cubic-bezier(.2, .8, .2, 1) both }
+  @keyframes slideL { from { opacity: 0; transform: translateX(-24px) } }
+  @keyframes slideR { from { opacity: 0; transform: translateX(24px) } }
+  .pop { animation: pop .34s cubic-bezier(.3, 1.6, .5, 1) }
+  @keyframes pop { 40% { transform: scale(1.18) } }
+  .check.pop svg { animation: tick .35s ease both }
+  @keyframes tick { from { opacity: 0; transform: scale(.3) rotate(-25deg) } }
+  .fade-in { animation: rise .45s cubic-bezier(.2, .8, .2, 1) both }
+  .glow { animation: glow 1s ease }
+  @keyframes glow { 0% { background-color: var(--accent-soft) } 100% { background-color: transparent } }
+  .shake { animation: shake .45s }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px) } 40%, 80% { transform: translateX(6px) } }
+  .leaving { animation: leave .22s ease-in both }
+  @keyframes leave { to { opacity: 0; transform: translateX(30px) } }
+  .party { animation: party .9s cubic-bezier(.3, 1.3, .5, 1) }
+  @keyframes party { 0% { transform: scale(.96) } 45% { transform: scale(1.03) } 100% { transform: scale(1) } }
+  .enter .fill { animation: growY .6s cubic-bezier(.2, .8, .2, 1) both; transform-origin: bottom }
+  @keyframes growY { from { transform: scaleY(0) } }
+  .enter .hbar .t i, .enter .progress i { animation: growX .7s cubic-bezier(.2, .8, .2, 1) both; transform-origin: left }
+  @keyframes growX { from { transform: scaleX(0) } }
+  .fxburst i { animation: fly var(--t, 1.1s) cubic-bezier(.15, .7, .3, 1) both; animation-delay: var(--d, 0s) }
+  @keyframes fly {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0) scale(.3) }
+    12% { opacity: 1 }
+    60% { opacity: 1; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s, 1)) }
+    100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + var(--g, 0px))) rotate(calc(var(--r) * 1.5)) scale(var(--s, 1)) }
+  }
+  .toast.show { animation: toastIn .32s cubic-bezier(.2, .9, .25, 1.2) both }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px) } to { opacity: 1; transform: translate(-50%, 0) } }
+  .nice:not([hidden]) { animation: fadeIn .25s ease both }
+  .nice:not([hidden]) .box { animation: popIn .45s cubic-bezier(.3, 1.4, .5, 1) both }
+  @keyframes fadeIn { from { opacity: 0 } }
+  @keyframes popIn { from { opacity: 0; transform: scale(.85) } }
+  .glass.pop i { animation: fillUp .5s ease both }
+  @keyframes fillUp { from { transform: scaleY(0) } }
+  .glass i { transform-origin: bottom }
+}
 </style>
 </head>
 <body>
@@ -386,6 +438,7 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
     const next = rem.ore.includes(h) ? rem.ore.filter((x) => x !== h) : [...rem.ore, h].sort((a, b) => a - b);
     if (!next.length) { toast('Lascia almeno un orario'); return; }
     rem.ore = next;
+    fx = { pop: `[data-hour="${h}"]` };
     render();
     const r = await sb.from('promemoria').upsert({ user_id: userId, ore: next });
     toast(r.error ? 'Orari non salvati, riprova' : `Promemoria: ${oreTxt()}`);
@@ -771,7 +824,79 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
     const account = `<div class="account"><span class="sync" id="sync"></span><button class="linkbtn" data-logout>Esci</button></div>`;
     $('view').innerHTML = `<div style="display:grid;gap:16px">${views[st.tab](st.day)}${account}</div>`;
     setSync(syncState);
+    runFx();
     if (focusId && $(focusId) && focusId.startsWith('g-')) $(focusId).focus();
+  }
+
+
+  // ---------- animazioni ----------
+  // Prima di ridisegnare si dice quale effetto fare (fx), poi runFx lo applica alla pagina nuova.
+  let fx = { view: true };
+  let seenIds = new Set();
+  const FEST = ['var(--goal)', 'var(--accent)', 'var(--spend)', 'var(--points)', '#f6a8c6', '#ffffff'];
+  const calm = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+  const idsIn = (root) => new Set([...root.querySelectorAll('[data-id], [data-toggle], [data-idea]')].map((b) => b.dataset.id || b.dataset.toggle || b.dataset.idea));
+  // Petali/coriandoli che partono da un punto dello schermo.
+  function burst(x, y, { n = 10, reach = 60, colors = FEST, gravity = 0, square = false, time = 1 } = {}) {
+    const b = document.createElement('div'); b.className = 'fxburst';
+    b.style.left = x + 'px'; b.style.top = y + 'px';
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      const d = reach * (0.5 + Math.random() * 0.5);
+      const p = document.createElement('i');
+      p.style.cssText = `--c:${colors[i % colors.length]};--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d - (gravity ? reach * 0.35 : 0)}px;--g:${gravity}px;--r:${Math.round(Math.random() * 360 - 180)}deg;--s:${(0.6 + Math.random() * 0.8).toFixed(2)};--d:${(Math.random() * 0.12).toFixed(2)}s;--t:${(time * (0.9 + Math.random() * 0.5)).toFixed(2)}s${square ? ';--br:2px' : ''}`;
+      b.appendChild(p);
+    }
+    document.body.appendChild(b); setTimeout(() => b.remove(), time * 1600 + 300);
+  }
+  const center = (el) => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  function bigParty(el) {
+    if (el) replay(el, 'party');
+    const w = window.innerWidth, h = window.innerHeight;
+    burst(w / 2, h * 0.38, { n: 46, reach: Math.min(w, 520) * 0.55, gravity: 160, square: true, time: 1.5 });
+    setTimeout(() => { burst(w * 0.22, h * 0.5, { n: 18, reach: 130, gravity: 120, square: true, time: 1.3 }); burst(w * 0.78, h * 0.5, { n: 18, reach: 130, gravity: 120, square: true, time: 1.3 }); }, 220);
+    try { if (navigator.vibrate) navigator.vibrate([18, 50, 18]); } catch (e) {}
+  }
+  function runFx() {
+    const f = fx; fx = {};
+    const view = $('view');
+    view.classList.remove('enter', 'slide-l', 'slide-r');
+    const ids = idsIn(view);
+    const fresh = f.added ? [...ids].filter((id) => !seenIds.has(id)) : [];
+    seenIds = ids;
+    if (calm()) return;
+    const wrap = view.firstElementChild;
+    if (f.view && wrap) { [...wrap.children].forEach((c, i) => c.style.setProperty('--i', Math.min(i, 8))); void view.offsetWidth; view.classList.add('enter'); }
+    if (f.slide) { void view.offsetWidth; view.classList.add(f.slide < 0 ? 'slide-l' : 'slide-r'); }
+    fresh.forEach((id) => { const b = view.querySelector(`[data-id="${id}"], [data-toggle="${id}"], [data-idea="${id}"]`); const row = b && (b.closest('.row') || b.closest('li')); if (row) { replay(row, 'fade-in'); row.classList.add('glow'); } });
+    if (f.pop) view.querySelectorAll(f.pop).forEach((el) => replay(el, 'pop'));
+    if (f.check) {
+      const el = view.querySelector(f.check);
+      if (el) {
+        replay(el, 'pop');
+        const row = el.closest('.row'); if (row) replay(row, 'glow');
+        const [x, y] = center(el);
+        if (f.big) bigParty(el.closest('.panel'));
+        else burst(x, y, { n: 10, reach: 46, colors: f.colors || FEST });
+      }
+    }
+    if (f.shake) { const el = view.querySelector(f.shake); if (el) { replay(el, 'pop'); const row = el.closest('.row'); if (row) replay(row, 'shake'); } }
+    if (f.water) {
+      const gl = view.querySelectorAll('.glass'); const last = [...gl].reverse().find((g) => g.querySelector('i').style.height !== '0%');
+      if (last) replay(last, 'pop');
+      const big = view.querySelector('.water .now .big');
+      if (big) { replay(big, 'pop'); const [x, y] = center(big); if (f.water === 'goal') bigParty(view.querySelector('.water')); else burst(x, y, { n: 9, reach: 50, colors: ['var(--water)', '#9fd3f5', '#ffffff'] }); }
+    }
+  }
+  // Una riga eliminata scivola via prima di sparire.
+  function leave(el) {
+    if (calm() || el.dataset.left) return false;
+    const row = el.closest('.row') || el.closest('li');
+    if (!row) return false;
+    row.classList.add('leaving'); el.dataset.left = '1';
+    setTimeout(() => el.click(), 210);
+    return true;
   }
 
   function toast(msg, undo) {
@@ -779,6 +904,7 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
     $('undo').hidden = !undo;
     $('toastmsg').textContent = msg;
     $('toast').hidden = false;
+    replay($('toast'), 'show');
     clearTimeout(toast.t);
     toast.t = setTimeout(() => { $('toast').hidden = true; }, 5000);
   }
@@ -790,6 +916,7 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
     const before = waterOn(day), goal = waterGoal();
     const v = Math.max(0, before + ml);
     if (v) data.water[day] = v; else delete data.water[day];
+    if (ml > 0) fx = { water: before < goal && v >= goal ? 'goal' : true };
     commit(before < goal && v >= goal ? 'Obiettivo dell\'acqua raggiunto, brava!' : `${lt(v)} di ${lt(goal)}`);
   }
   document.addEventListener('click', (ev) => {
@@ -798,33 +925,39 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
     if (el.dataset.tab || el.dataset.go) {
       st.tab = el.dataset.tab || el.dataset.go;
       try { localStorage.setItem(KEY + ':tab', st.tab); } catch (e) {}
-      render(); window.scrollTo(0, 0); return;
+      fx = { view: true }; render(); window.scrollTo(0, 0); return;
     }
     if (el.id === 'prev' || el.id === 'next') {
       const n = el.id === 'prev' ? -1 : 1;
       if (st.tab === 'riepilogo') { const m = addMonths(st.day, n); st.day = monthStart(m) === monthStart(todayIso()) ? todayIso() : m; }
       else st.day = addDays(st.day, n);
-      render(); return;
+      fx = { slide: n }; render(); return;
     }
-    if (el.id === 'today') { st.day = todayIso(); render(); return; }
+    if (el.id === 'today') { fx = { slide: st.day > todayIso() ? -1 : 1 }; st.day = todayIso(); render(); return; }
     if (el.id === 'undo') { if (undoState) { data = JSON.parse(undoState); undoState = null; save(); render(); } $('toast').hidden = true; return; }
     if (el.id === 'nice-ok') { $('nice').hidden = true; return; }
-    if (el.dataset.gtype) { st.goalType = el.dataset.gtype; render(); return; }
+    if (el.dataset.gtype) { st.goalType = el.dataset.gtype; fx = { pop: `[data-gtype="${el.dataset.gtype}"]` }; render(); return; }
     if (el.dataset.toggle) {
       const g = data.goals.find((x) => x.id === el.dataset.toggle);
-      if (g) { g.done = !g.done; if (g.done) g.failed = false; commit(g.done ? `${fmtPts(PUNTI[g.type])} punti, brava!` : ''); }
+      if (g) {
+        g.done = !g.done; if (g.done) g.failed = false;
+        const sel = `[data-toggle="${g.id}"]`;
+        const dayGoals = data.goals.filter((x) => x.type === g.type && x.date === g.date);
+        fx = g.done ? { check: sel, big: dayGoals.length > 1 && dayGoals.every((x) => x.done) } : { pop: sel };
+        commit(g.done ? `${fmtPts(PUNTI[g.type])} punti, brava!` : ''); }
       return;
     }
     if (el.dataset.fail) {
       const g = data.goals.find((x) => x.id === el.dataset.fail);
       if (!g) return;
       g.failed = !g.failed;
-      g.done = false; g.avvisato = g.failed;
+      g.done = false; fx = g.failed ? { shake: `[data-fail="${g.id}"]` } : { pop: `[data-fail="${g.id}"]` }; g.avvisato = g.failed;
       commit(g.failed ? `${fmtPts(PUNTI.fail)} punti. ${pick(CORAGGIO)}` : '');
       return;
     }
     if (el.dataset.water) { addWater(st.day, Number(el.dataset.water)); return; }
     if (el.dataset.waterReset) { snapshot(); delete data.water[el.dataset.waterReset]; commit('Acqua azzerata', true); return; }
+    if (el.dataset.del && leave(el)) return;
     if (el.dataset.del) {
       snapshot();
       data[el.dataset.del] = data[el.dataset.del].filter((x) => x.id !== el.dataset.id);
@@ -838,6 +971,7 @@ input, select { width: 100%; height: 42px; border: 1px solid var(--line); backgr
   document.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const f = ev.target.id;
+    fx = { added: true };
     if (f === 'f-goal') {
       const text = $('g-text').value.trim(); if (!text) return;
       data.goals.push({ id: uid(), text, type: st.goalType, date: st.goalType === 'day' ? st.day : monday(st.day), done: false });
