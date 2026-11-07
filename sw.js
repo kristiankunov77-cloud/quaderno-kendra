@@ -1,6 +1,6 @@
 // Tiene in cache i file del Quaderno di Kendra così si apre anche senza rete.
 // I dati passano sempre da Supabase e non vengono messi in cache qui.
-const CACHE = 'kendra-v5';
+const CACHE = 'kendra-v6';
 const FILES = ['./', 'index.html', 'config.js', 'supabase.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
@@ -21,8 +21,10 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(d.title || 'Quaderno di Kendra', {
     body: d.body || 'Apri il Quaderno e scrivi la tua giornata.',
     icon: 'icon-192.png',
+    badge: 'icon-192.png',
     tag: d.tag || 'promemoria',
     renotify: true,
+    silent: false,
     vibrate: d.vibrate || [200, 100, 200],
     data: { url: d.url || './' }
   }));
